@@ -1,0 +1,81 @@
+[gd_scene load_steps=6 format=3 uid="uid://ba12ormn3pkt4"]
+
+[ext_resource type="Texture2D" uid="uid://ru5k13lk2nud" path="res://tile_0000.png" id="1_kb2ks"]
+[ext_resource type="Texture2D" uid="uid://do8n1jlw1su3h" path="res://tile_0001.png" id="1_oaken"]
+
+[sub_resource type="GDScript" id="GDScript_5guig"]
+resource_name = "player_movement"
+script/source = "extends CharacterBody2D
+
+
+const SPEED = 300.0
+const JUMP_VELOCITY = -400.0
+
+# Get the gravity from the project settings to be synced with RigidBody nodes.
+var gravity = ProjectSettings.get_setting(\"physics/2d/default_gravity\")
+
+
+func _physics_process(delta):
+	# Add the gravity.
+	if not is_on_floor():
+		velocity.y += gravity * delta
+
+	# Handle jump.
+	if Input.is_action_just_pressed(\"ui_accept\") and is_on_floor():
+		velocity.y = JUMP_VELOCITY
+
+	# Get the input direction and handle the movement/deceleration.
+	# As good practice, you should replace UI actions with custom gameplay actions.
+	var direction = Input.get_axis(\"ui_left\", \"ui_right\")
+	if direction:
+		velocity.x = direction * SPEED
+	else:
+		velocity.x = move_toward(velocity.x, 0, SPEED)
+
+	move_and_slide()
+
+	bool var isLeft = velocity.x < 0
+	AnimatedSprite2D.flip_h = isLeft
+"
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_sqfi6"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_oaken")
+}],
+"loop": true,
+"name": &"idie",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_kb2ks")
+}, {
+"duration": 1.0,
+"texture": ExtResource("1_oaken")
+}],
+"loop": true,
+"name": &"running",
+"speed": 4.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fyegs"]
+size = Vector2(20, 23.5)
+
+[node name="CharacterBody2D" type="CharacterBody2D"]
+script = SubResource("GDScript_5guig")
+metadata/_edit_vertical_guides_ = [332.0]
+
+[node name="Sprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+position = Vector2(346, 213)
+scale = Vector2(2, 2.027)
+sprite_frames = SubResource("SpriteFrames_sqfi6")
+animation = &"idie"
+frame_progress = 0.0447146
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(346, 214)
+scale = Vector2(2, 2)
+shape = SubResource("RectangleShape2D_fyegs")
