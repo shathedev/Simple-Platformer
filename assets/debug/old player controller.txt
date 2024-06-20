@@ -1,0 +1,89 @@
+extends CharacterBody2D
+
+@onready var sprite_2d = $Sprite2D
+
+@export var SPEED = 400.0
+@export var JUMP_VELOCITY = -760.0
+
+@export var coyoteTime = 0.1
+var coyoteCounter = 0
+
+@export var jumpBufferTime = 0.05
+var jumpBufferCounter = 0
+
+# Get the gravity from the project settings to be synced with RigidBody nodes.
+var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
+
+@export var dashLength = 0.12
+@export var dashSpeed = 800
+var dashCounter = 0
+
+
+func _input(event):
+	
+	
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_T:
+			velocity.x = 0
+			velocity.y = 0
+			position.x = 0 
+			position.y = 0
+
+func _physics_process(delta):
+	
+	# Dash
+	if(Input.is_physical_key_pressed(KEY_X)):
+		dashCounter = dashLength
+	
+	# Animations
+	if (velocity.x > 1 || velocity.x < -1):
+		sprite_2d.play("running")
+	else:
+		sprite_2d.play("default")
+	
+	# Timers
+	if (is_on_floor()):
+		coyoteCounter = coyoteTime
+	else:
+		coyoteCounter -= delta
+		
+	if (Input.is_key_pressed(KEY_Z)):
+		jumpBufferCounter = jumpBufferTime
+	else:
+		jumpBufferCounter -= delta
+	
+	if (dashCounter > 0):
+		dashCounter -= delta
+		velocity.x = dashSpeed
+		print(str(dashCounter))
+	
+	# Add the gravity.
+	if not is_on_floor():
+		if velocity.y > 0: 
+			velocity.y += gravity * 1.25 * delta
+		else:
+			velocity.y += gravity * delta
+			
+	# Handle jump.
+	if jumpBufferCounter > 0 and coyoteCounter > 0:	
+		velocity.y = JUMP_VELOCITY
+		coyoteCounter = 0
+		jumpBufferCounter = 0
+
+	# Get the input direction and handle the movement/deceleration.
+	# As good practice, you should replace UI actions with custom gameplay actions.
+	
+	var direction = 0
+	var temp = 0
+	
+	if Input.is_action_pressed("left"): direction = -1
+	if Input.is_action_pressed("right"): direction = 1
+	
+	if direction:
+		velocity.x = direction * SPEED
+	else:
+		velocity.x = move_toward(velocity.x, 0, SPEED)
+
+	move_and_slide()
+
+	sprite_2d.flip_h = 1 if direction == 1 else 0

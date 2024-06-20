@@ -6,24 +6,11 @@
 [sub_resource type="GDScript" id="GDScript_5guig"]
 resource_name = "player_movement"
 script/source = "extends CharacterBody2D
+
 @onready var sprite_2d = $Sprite2D
 
-func die():
-	sprite_2d.visible = false
-	canMove = false
-	await get_tree().create_timer(0.2).timeout
-	position.x = checkpointX
-	position.y = checkpointY
-	sprite_2d.visible = true
-	canMove = true
-
-var checkpointX = 0
-var checkpointY = 0
-
-var normalspeed = 400
-var gravity = 2150
-
-var jumpForce = 850
+@export var SPEED = 400.0
+@export var JUMP_VELOCITY = -760.0
 
 @export var coyoteTime = 0.1
 var coyoteCounter = 0
@@ -31,42 +18,45 @@ var coyoteCounter = 0
 @export var jumpBufferTime = 0.05
 var jumpBufferCounter = 0
 
-var dashSpeed = 1600
-var dashLength = 0.1
+# Get the gravity from the project settings to be synced with RigidBody nodes.
+var gravity = ProjectSettings.get_setting(\"physics/2d/default_gravity\")
+
+@export var dashCooldown = 0.45
 var dashCounter = 0
 
-var speed = 0
-var canDash = 1
-
-var canMove = true
-
-@export var maxHP = 5
-var hp = maxHP
+func _input(event):
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_T:
+			velocity.x = 0
+			velocity.y = 0
+			position.x = 0
+			position.y = 0
+		if event.keycode == KEY_X:
+			velocity.x = 800
+			dashCounter = dashCooldown
 
 func _physics_process(delta):
+	# Animations
+	if (velocity.x > 1 || velocity.x < -1):
+		sprite_2d.play(\"running\")
+	else:
+		sprite_2d.play(\"default\")
+	
 	# Timers
 	if (is_on_floor()):
 		coyoteCounter = coyoteTime
 	else:
 		coyoteCounter -= delta
 		
-	if (Input.is_action_pressed(\"jump\")):
+	if (Input.is_key_pressed(KEY_Z)):
 		jumpBufferCounter = jumpBufferTime
 	else:
 		jumpBufferCounter -= delta
 	
-	if dashCounter > 0:
-		speed = dashSpeed
+	if (dashCounter > 0):
 		dashCounter -= delta
-		canDash = 0
-		sprite_2d.modulate = Color(1, 0.5, 0.5)
-	else:
-		speed = normalspeed
-		sprite_2d.modulate = Color(1, 1, 1)
 	
-	if is_on_floor():
-		canDash = 1
-	
+	# Add the gravity.
 	if not is_on_floor():
 		if velocity.y > 0: 
 			velocity.y += gravity * 1.25 * delta
@@ -74,29 +64,24 @@ func _physics_process(delta):
 			velocity.y += gravity * delta
 			
 	# Handle jump.
-	if coyoteCounter > 0 and jumpBufferCounter > 0 and canMove:	
-		velocity.y -= jumpForce
+	if jumpBufferCounter > 0 and coyoteCounter > 0:	
+		velocity.y = JUMP_VELOCITY
 		coyoteCounter = 0
-		jumpBufferCounter = 0  
+		jumpBufferCounter = 0
 
-	if Input.is_action_pressed(\"dash\") and canDash:
-		dashCounter = dashLength
-	if Input.is_action_pressed(\"left\") and canMove:
-		velocity.x = -speed
-		sprite_2d.flip_h = 0
-		sprite_2d.play(\"running\")
-	elif Input.is_action_pressed(\"right\") and canMove:
-		velocity.x = speed
-		sprite_2d.flip_h = 1
-		sprite_2d.play(\"running\")
+	# Get the input direction and handle the movement/deceleration.
+	# As good practice, you should replace UI actions with custom gameplay actions.a
+	var direction = Input.get_axis(\"ui_left\", \"ui_right\")
+	if direction:
+		velocity.x = direction * SPEED
 	else:
-		velocity.x = 0
-		sprite_2d.play(\"default\")
+		velocity.x = move_toward(velocity.x, 0, SPEED)
 
-	print(str(checkpointX) + \", \" + str(checkpointY))
 	move_and_slide()
-	
-	
+
+	var isLeft = velocity.x > 0
+	sprite_2d.flip_h = isLeft
+
 "
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_u1upv"]
@@ -122,16 +107,19 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bqp1k"]
-size = Vector2(35, 40.5)
+size = Vector2(30, 34.5)
 
 [node name="Player" type="CharacterBody2D"]
 position = Vector2(2, 2)
 script = SubResource("GDScript_5guig")
+SPEED = 450.0
+JUMP_VELOCITY = -750.0
+coyoteTime = 0.08
 metadata/_edit_vertical_guides_ = [332.0]
 
 [node name="Sprite2D" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
-scale = Vector2(3.5, 3.5)
+scale = Vector2(3, 3)
 sprite_frames = SubResource("SpriteFrames_u1upv")
 animation = &"running"
 
